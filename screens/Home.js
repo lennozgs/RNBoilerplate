@@ -7,6 +7,7 @@ import {
     SafeAreaView,
 } from 'react-native';
 import {Colors, Fonts, Global} from "../styles/Global";
+import i18n from './../utils/i18n';
 
 export default class Home extends React.Component {
 
@@ -42,10 +43,10 @@ export default class Home extends React.Component {
             <ScrollView contentContainerStyle={Global.contentContainerStyle} showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} overScrollMode={'never'} bounces={false} automaticallyAdjustContentInsets={false}>
                 <SafeAreaView style={Global.container}>
 
-                <Text style={[{color: Colors.secondary}, Fonts.light]}>Home</Text>
+                <Text style={[{color: Colors.secondary}, Fonts.light]}>{i18n.t('home')}</Text>
 
                 <Button
-                    title="Go to Settings"
+                    title={i18n.t('settings')}
                     onPress={this.goToSettings}
                 />
                 </SafeAreaView>
