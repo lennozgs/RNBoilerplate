@@ -1,0 +1,122 @@
+#!/bin/bash -
+
+function generateAndroidBundle()
+{
+#    react-native bundle --platform android --dev false --entry-file index.android.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+    echo "Build release js bundle"
+    react-native bundle \
+        --platform android \
+        --dev false \
+        --entry-file index.android.js \
+        --bundle-output android/app/src/main/assets/index.android.bundle \
+        --assets-dest android/app/build/intermediates/res/merged/release/
+}
+
+function buildAPK()
+{
+    generateAndroidBundle
+
+    echo "Build release APK"
+    cd android
+#   rm -rf ./app/src/main/res/drawable-*
+    ./gradlew assembleRelease
+    cd -
+}
+
+function releaseAPK()
+{
+    buildAPK
+#    adb install -r android/app/build/outputs/apk/app-release.apk
+    adb install -r android/app/build/outputs/apk/release/app-release.apk
+    adb shell am start -n com.miliboo.connected/.MainActivity
+}
+
+function generateIosBundle()
+{
+    echo "@@@ Generate js bundle file"
+    react-native bundle --entry-file index.ios.js --platform ios --dev false --bundle-output ios/main.jsbundle --assets-dest ios
+}
+
+function releaseIPA()
+{
+    generateIosBundle
+    echo "@@@ Run configuration release"
+    react-native run-ios --configuration Release --device
+}
+
+while [ "$1" != "" ]; do
+    PARAM=`echo $1 | awk -F= '{print $1}'`
+    VALUE=`echo $1 | awk -F= '{print $2}'`
+    case $PARAM in
+        -h | --help)
+            echo "####################################################################"
+            echo "# Usage : ./run-s"
+            echo "# arg : "
+            echo "#         --clean                 Clean watchman and tmp"
+            echo "#         --clean-all             Clean all cache"
+            echo "#         --list-ios              List ios devices"
+            echo "#         --ios                   Launch app on device"
+            echo "#         --ios-simulator         List ios simulators"
+            echo "#         --ios-bundle            Generate main.jsbundle used by ios"
+            echo "#         --ios-log               Display ios logs"
+            echo "#         --ios-release           Generate bundle, build signed IPA and launch on device"
+            echo "#         --android               Run app on android device"
+            echo "#         --android-build-release Build signed APK"
+            echo "#         --android-release       Build & run signed APK"
+            echo "#         --android-log           Display android logs"
+            echo "#         --release               Generate signed"
+            echo "####################################################################"
+            exit
+            ;;
+        --release)
+            echo "Build release .apk"
+            releaseAPK
+            echo "Build release .ipa"
+            releaseIPA
+            ;;
+        --ios)
+            react-native run-ios --device
+            ;;
+        --ios-release)
+            releaseIPA
+            ;;
+        --ios-bundle)
+            generateIosBundle
+            ;;
+        --ios-log)
+            react-native log-ios
+            ;;
+        --list-ios)
+            xcrun simctl list devices
+            ;;
+        --ios-simulator)
+            react-native run-ios --simulator="$VALUE"
+            ;;
+        --ios-simulator-release)
+            react-native run-ios --configuration Release --simulator="$VALUE"
+            ;;
+        --android)
+#           react-native run-android --deviceId=$VALUE
+            react-native run-android
+            ;;
+        --android-build-release)
+            buildAPK
+            ;;
+        --android-release)
+            releaseAPK
+            ;;
+        --android-log)
+            react-native log-android
+            ;;
+        --clean)
+            watchman watch-del-all
+            rm -rf $TMPDIR/react-*
+            rm -rf $TMPDIR/haste-map-react-native-packager-*
+            ;;
+        --clean-all)
+            watchman watch-del-all && rm -rf $TMPDIR/react-* && rm -rf node_modules/ && npm cache clean && npm install && npm start -- --reset-cache
+            ;;
+    esac
+	shift
+done
